@@ -26,3 +26,11 @@
 *.exe
 *.out
 *.app
+
+# bin folder
+bin/
+
+# Code::Blocks project files
+*.depend
+*.layout
+*.cbp
