@@ -18966,8 +18966,9 @@ namespace cimg_library_suffixed {
        \note Random samples are following a uniform distribution.
      **/
     CImg<T>& rand(const T val_min, const T val_max) {
-      const float delta = (float)val_max - (float)val_min;
-      cimg_for(*this,ptrd,T) *ptrd = (T)(val_min + cimg::rand()*delta);
+      const float delta = (float)val_max - (float)val_min + (cimg::type<T>::is_float()?0:1);
+      if (cimg::type<T>::is_float()) cimg_for(*this,ptrd,T) *ptrd = (T)(val_min + cimg::rand()*delta);
+      else cimg_for(*this,ptrd,T) *ptrd = cimg::min(val_max,(T)(val_min + cimg::rand()*delta));
       return *this;
     }
 
@@ -19398,9 +19399,9 @@ namespace cimg_library_suffixed {
     **/
     CImg<T>& equalize(const unsigned int nb_levels, const T min_value, const T max_value) {
       if (!nb_levels || is_empty()) return *this;
-      const double
-        vmin = (double)(min_value<max_value?min_value:max_value),
-        vmax = (double)(min_value<max_value?max_value:min_value);
+      const T
+        vmin = min_value<max_value?min_value:max_value,
+        vmax = min_value<max_value?max_value:min_value;
       CImg<ulongT> hist = get_histogram(nb_levels,vmin,vmax);
       unsigned long cumul = 0;
       cimg_forX(hist,pos) { cumul+=hist[pos]; hist[pos] = cumul; }
@@ -19409,7 +19410,7 @@ namespace cimg_library_suffixed {
 #pragma omp parallel for if (size()>=1048576)
 #endif
       cimg_rof(*this,ptrd,T) {
-        const int pos = (int)((*ptrd-vmin)*(nb_levels-1)/(vmax-vmin));
+        const int pos = (int)((*ptrd-vmin)*(nb_levels-1.)/(vmax-vmin));
         if (pos>=0 && pos<(int)nb_levels) *ptrd = (T)(vmin + (vmax-vmin)*hist[pos]/cumul);
       }
       return *this;
@@ -19953,7 +19954,10 @@ namespace cimg_library_suffixed {
               y1 = _dy<0?_height:_height - _dy,
               z0 = _dz<0?-_dz:0,
               z1 = _dz<0?_depth:_depth - _dz;
-            const long wh = (long)_width*_height, whd = (long)_width*_height*_depth, offset = (long)_dz*wh + (long)_dy*_width + _dx;
+            const long
+              wh = (long)_width*_height,
+              whd = (long)_width*_height*_depth,
+              offset = (long)_dz*wh + (long)_dy*_width + _dx;
             for (long z = z0, nz = z0 + _dz, pz = z0*wh; z<z1; ++z, ++nz, pz+=wh) {
               for (long y = y0, ny = y0 + _dy, py = y0*_width + pz; y<y1; ++y, ++ny, py+=_width) {
                 for (long x = x0, nx = x0 + _dx, p = x0 + py; x<x1; ++x, ++nx, ++p) {
@@ -25829,7 +25833,7 @@ namespace cimg_library_suffixed {
     **/
     static void _cimg_recursive_apply(T *data, const double filter[], const int N, const unsigned long off,
                                       const int order, const bool boundary_conditions) {
-      double val[4];  // res[n,n-1,n-2,n-3,..] or res[n,n+1,n+2,n+3,..]
+      double val[4] = { 0 };  // res[n,n-1,n-2,n-3,..] or res[n,n+1,n+2,n+3,..]
       const double
         sumsq = filter[0], sum = sumsq * sumsq,
         a1 = filter[1], a2 = filter[2], a3 = filter[3],
@@ -43602,7 +43606,7 @@ namespace cimg_library_suffixed {
     template<typename t>
     const CImg<T>& _save_tiff(TIFF *tif, const unsigned int directory, const t& pixel_t,
                               const unsigned int compression_type,
-                              const float *const voxel_size=0, const char *const description=0) const {
+                              const float *const voxel_size, const char *const description) const {
       if (is_empty() || !tif || pixel_t) return *this;
       const char *const filename = TIFFFileName(tif);
       uint32 rowsperstrip = (uint32)-1;
