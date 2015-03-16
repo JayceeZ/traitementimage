@@ -6,35 +6,98 @@
 using namespace cimg_library;
 using namespace std;
 
-#define GRID_SIZE 16
+#define GRID_SIZE 6
 
+CImg<unsigned char> blackWhite(CImg<unsigned char> src);
 vector<vector<int> > matrixBW(CImg<unsigned char> image, int x1, int y1, int x2, int y2);
 void drawGrid(CImg<unsigned char>* image, int x1, int y1, int x2, int y2);
 
 int main(int argc, const char* argv[]) {
-  CImg<unsigned char> image = CImg<>("imgs/lettera.jpg");
+    // Test de blackwhite
+    CImg<unsigned char> src("imgs/couleur.jpg");
 
-  //image.load(file_i);
+	CImg<unsigned char> blackwhite = blackWhite(src);
+    (blackwhite).display("Black & White");
 
-  vector<vector<int> > matrice(GRID_SIZE*GRID_SIZE);
-  // values depending on the test image choosen
-  matrice = matrixBW(image, 100, 100, 310, 305);
-  drawGrid(&image, 100, 100, 310, 305);
+    // Test de la méthode de récupération de caractère par contour
 
-  for(int j=0; j < GRID_SIZE; j++) {
-    for(int i=0; i < GRID_SIZE; i++) {
-        cout << matrice[i][j];
+    // TODO: intégrer le code d'Alexandre Tissière
+
+
+    // Test de la méthode de grille
+    CImg<unsigned char> lettera("imgs/lettera.jpg");
+
+    vector<vector<int> > matrice(GRID_SIZE*GRID_SIZE);
+    //matrice = matrixBW(lettera, 100, 100, 310, 305);
+    //drawGrid(&lettera, 100, 100, 310, 305);
+    matrice = matrixBW(blackwhite, 170, 69, 183, 84);
+    drawGrid(&blackwhite, 170, 69, 183, 84);
+
+    for(int j=0; j < GRID_SIZE; j++) {
+        for(int i=0; i < GRID_SIZE; i++) {
+            cout << matrice[i][j];
+        }
+        cout << endl;
     }
-    cout << endl;
-  }
 
-  CImgDisplay main_disp(image, "Input Image");
+    CImgDisplay main_disp(blackwhite, "Input Image");
 
-  while (!main_disp.is_closed() && !main_disp.is_keyESC() && !main_disp.is_keyQ()) {
-    cimg::wait(20);
-  }
+    while (!main_disp.is_closed() && !main_disp.is_keyESC() && !main_disp.is_keyQ()) {
+        cimg::wait(20);
+    }
 
-  return 0;
+    return 0;
+}
+
+CImg<unsigned char> blackWhite(CImg<unsigned char> src)
+{
+    int width = src.width();
+	int height = src.height();
+	int depth = src.depth();
+	int total = 0;
+
+	//New grayscale images.
+	CImg<unsigned char> gray1(width,height,depth,1);
+	CImg<unsigned char> blackwhite(width,height,depth,1);
+
+	unsigned char r,g,b;
+	unsigned char gr1 = 0;
+
+	/* Convert RGB image to grayscale image */
+    cimg_forXY(src,i,j) {
+
+			//Return a pointer to a located pixel value.
+			r = src(i,j,0,0); // First channel RED
+			g = src(i,j,0,1); // Second channel GREEN
+			b = src(i,j,0,2); // Third channel BLUE
+
+			//PAL and NTSC
+			//Y = 0.299*R + 0.587*G + 0.114*B
+			gr1 = round(0.299*((double)r) + 0.587*((double)g) + 0.114*((double)b));
+			gray1(i,j,0,0) = gr1;
+			total+=gr1;
+	}
+	int median = gray1.median();
+	int variance = gray1.variance();
+	int tab[16];
+	for (int i =0; i<16; i++){
+            tab[i]=0;
+    }
+
+    cimg_forXY(gray1,i,j) {
+            gr1 = gray1(i,j,0,0);
+            tab[gr1/16]++;
+            if (gr1<median-sqrt(variance)){
+                blackwhite(i,j,0,0) = 0;
+			} else {
+			    blackwhite(i,j,0,0) = 255;
+			}
+    }
+    // cout << "Histogramme :" << endl;
+    for (int i =0; i<16; i++){
+        //cout << "entre " << i*16 << " et " << i*16+15 << ": " << tab[i] << endl;
+    }
+    return blackwhite;
 }
 
 void drawGrid(CImg<unsigned char>* image, int x1, int y1, int x2, int y2) {
