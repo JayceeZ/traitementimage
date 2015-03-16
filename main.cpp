@@ -28,14 +28,12 @@ int main(int argc, const char* argv[]) {
     cout << endl;
   }
 
-  //(image).display("prout");
   CImgDisplay main_disp(image, "Input Image");
 
   while (!main_disp.is_closed() && !main_disp.is_keyESC() && !main_disp.is_keyQ()) {
     cimg::wait(20);
   }
 
-  //image.save("imgs/test.png");
   return 0;
 }
 
@@ -52,7 +50,7 @@ void drawGrid(CImg<unsigned char>* image, int x1, int y1, int x2, int y2) {
     }
 }
 
-// Précondition: x2 plus grand que x1
+// Précondition: (x1,y1) plus grand que (x2, y2)
 vector<vector<int> > matrixBW(CImg<unsigned char> image, int x1, int y1, int x2, int y2) {
     vector<vector<int> > matrice(GRID_SIZE*GRID_SIZE);
 
