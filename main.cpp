@@ -4,6 +4,7 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
+#include <sstream>
 
 using namespace cimg_library;
 using namespace std;
@@ -13,8 +14,9 @@ using namespace std;
 CImg<unsigned char> blackWhite(CImg<unsigned char> src);
 vector<vector<int> > matrixBW(CImg<unsigned char> image, int x1, int y1, int x2, int y2);
 void drawGrid(CImg<unsigned char>* image, int x1, int y1, int x2, int y2);
+void genererMatrices(char* caracteres);
 
-vector<Caractere> caracteres;
+vector<Caractere> objetsCaractere;
 
 int main(int argc, const char* argv[]) {
     // Test de blackwhite
@@ -31,17 +33,21 @@ int main(int argc, const char* argv[]) {
     // Test de la méthode de grille
     //CImg<unsigned char> lettera("imgs/lettera.jpg");
 
-    vector<vector<int> > matrice(GRID_SIZE*GRID_SIZE);
+    //vector<vector<int> > matrice(GRID_SIZE*GRID_SIZE);
     //matrice = matrixBW(lettera, 100, 100, 310, 305);
     //drawGrid(&lettera, 100, 100, 310, 305);
-    matrice = matrixBW(blackwhite, 585, 21, 587, 23);
-    drawGrid(&blackwhite, 585, 21, 587, 23);
+    //matrice = matrixBW(blackwhite, 585, 21, 587, 23);
+    //drawGrid(&blackwhite, 585, 21, 587, 23);
 
-    for(int j=0; j < GRID_SIZE; j++) {
-        for(int i=0; i < GRID_SIZE; i++) {
-            cout << matrice[i][j];
+    genererMatrices("ab");
+
+    for(int k=0; k <= 1; k++) {
+        for(int j=0; j < GRID_SIZE; j++) {
+            for(int i=0; i < GRID_SIZE; i++) {
+                cout << objetsCaractere[k].getMatrice()[i][j];
+            }
+            cout << endl;
         }
-        cout << endl;
     }
 
     CImgDisplay main_disp(blackwhite, "Input Image");
@@ -154,13 +160,18 @@ vector<vector<int> > matrixBW(CImg<unsigned char> image, int x1, int y1, int x2,
 }
 
 void genererMatrices(char* caracteres) {
-    char caractere = caracteres[0];
-    char* fichier = caractere << ".jpg";
+    for(int k=0; k < strlen(caracteres); k++) {
+        char caractere = caracteres[k];
+        stringstream concatenation;
+        concatenation << "imgs/" << caractere << ".jpg";
+        string fichier = concatenation.str();
+        std::cout << "creation de " << caractere << endl;
 
-    CImg<unsigned int> lettre(fichier);
+        CImg<unsigned int> lettre(fichier.data());
 
-    Caractere caractere(caractere, matrixBW(lettre, 0, 0, lettre.width(), lettre.height()));
-    caracteres.push_back(caractere);
+        Caractere objet(caractere, matrixBW(lettre, 0, 0, lettre.width(), lettre.height()));
+        objetsCaractere.push_back(objet);
+    }
 
     return;
 }

@@ -1,15 +1,16 @@
 #ifndef CARACTERE_H
 #define CARACTERE_H
 
+#include <stdlib.h>
 #include <vector>
 
 class Caractere {
 private:
       char caractere;
-      vector<vector<int> > matrice;
+      std::vector<std::vector<int> > matrice;
 
 public:
-      Caractere(char caractere, vector<vector<int> > matrice) {
+      Caractere(char caractere, std::vector<std::vector<int> > matrice) {
             this->caractere = caractere;
             this->matrice = matrice;
       }
@@ -18,7 +19,7 @@ public:
             return caractere;
       }
 
-      vector<vector<int> > getMatrice() {
+      std::vector<std::vector<int> > getMatrice() {
             return matrice;
       }
 };
