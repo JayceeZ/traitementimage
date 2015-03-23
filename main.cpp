@@ -1,4 +1,6 @@
 #include "headers/CImg.h"
+#include "caractere.h"
+
 #include <iostream>
 #include <iomanip>
 #include <vector>
@@ -6,18 +8,20 @@
 using namespace cimg_library;
 using namespace std;
 
-#define GRID_SIZE 8.0
+#define GRID_SIZE 6.0
 
 CImg<unsigned char> blackWhite(CImg<unsigned char> src);
 vector<vector<int> > matrixBW(CImg<unsigned char> image, int x1, int y1, int x2, int y2);
 void drawGrid(CImg<unsigned char>* image, int x1, int y1, int x2, int y2);
+
+vector<Caractere> caracteres;
 
 int main(int argc, const char* argv[]) {
     // Test de blackwhite
     CImg<unsigned char> src("imgs/couleur.jpg");
 
 	CImg<unsigned char> blackwhite = blackWhite(src);
-    //(blackwhite).display("Black & White");
+    (blackwhite).display("Black & White");
 
     // Test de la méthode de récupération de caractère par contour
 
@@ -30,8 +34,8 @@ int main(int argc, const char* argv[]) {
     vector<vector<int> > matrice(GRID_SIZE*GRID_SIZE);
     //matrice = matrixBW(lettera, 100, 100, 310, 305);
     //drawGrid(&lettera, 100, 100, 310, 305);
-    matrice = matrixBW(blackwhite, 170, 69, 183, 84);
-    drawGrid(&blackwhite, 170, 69, 183, 84);
+    matrice = matrixBW(blackwhite, 585, 21, 587, 23);
+    drawGrid(&blackwhite, 585, 21, 587, 23);
 
     for(int j=0; j < GRID_SIZE; j++) {
         for(int i=0; i < GRID_SIZE; i++) {
@@ -147,4 +151,16 @@ vector<vector<int> > matrixBW(CImg<unsigned char> image, int x1, int y1, int x2,
     }
 
     return matrice;
+}
+
+void genererMatrices(char* caracteres) {
+    char caractere = caracteres[0];
+    char* fichier = caractere << ".jpg";
+
+    CImg<unsigned int> lettre(fichier);
+
+    Caractere caractere(caractere, matrixBW(lettre, 0, 0, lettre.width(), lettre.height()));
+    caracteres.push_back(caractere);
+
+    return;
 }
