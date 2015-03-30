@@ -9,7 +9,17 @@
 using namespace cimg_library;
 using namespace std;
 
-#define GRID_SIZE 6.0
+#define GRID_SIZE 32.0
+
+vector<vector<int> > contour;
+CImg<unsigned char> image;
+
+vector<vector<int> > triRectangles(vector<vector<int> > rectangles);
+float compareMatrix(vector<vector<int> > mat1, vector<vector<int> > mat2);
+string detectFromImage(string path);
+void loadSamplePolice();
+void addContour(int x, int y);
+vector<vector<int> > detection_rectangles();
 
 CImg<unsigned char> blackWhite(CImg<unsigned char> src);
 vector<vector<int> > matrixBW(CImg<unsigned char> image, int x1, int y1, int x2, int y2);
@@ -19,42 +29,9 @@ void genererMatrices(char* caracteres);
 vector<Caractere> objetsCaractere;
 
 int main(int argc, const char* argv[]) {
-    // Test de blackwhite
-    CImg<unsigned char> src("imgs/couleur.jpg");
-
-	CImg<unsigned char> blackwhite = blackWhite(src);
-    (blackwhite).display("Black & White");
-
-    // Test de la méthode de récupération de caractère par contour
-
-    // TODO: intégrer le code d'Alexandre Tissière
-
-
-    // Test de la méthode de grille
-    //CImg<unsigned char> lettera("imgs/lettera.jpg");
-
-    //vector<vector<int> > matrice(GRID_SIZE*GRID_SIZE);
-    //matrice = matrixBW(lettera, 100, 100, 310, 305);
-    //drawGrid(&lettera, 100, 100, 310, 305);
-    //matrice = matrixBW(blackwhite, 585, 21, 587, 23);
-    //drawGrid(&blackwhite, 585, 21, 587, 23);
-
-    genererMatrices("ab");
-
-    for(int k=0; k <= 1; k++) {
-        for(int j=0; j < GRID_SIZE; j++) {
-            for(int i=0; i < GRID_SIZE; i++) {
-                cout << objetsCaractere[k].getMatrice()[i][j];
-            }
-            cout << endl;
-        }
-    }
-
-    CImgDisplay main_disp(blackwhite, "Input Image");
-
-    while (!main_disp.is_closed() && !main_disp.is_keyESC() && !main_disp.is_keyQ()) {
-        cimg::wait(20);
-    }
+    loadSamplePolice();
+    string test = detectFromImage("imgs/image_test.png");
+    cout << "test : " << test << endl;
 
     return 0;
 }
@@ -130,7 +107,7 @@ vector<vector<int> > matrixBW(CImg<unsigned char> image, int x1, int y1, int x2,
     float pixelsColumns = (x2-x1)/GRID_SIZE;
     float pixelsLines = (y2-y1)/GRID_SIZE;
 
-    cout << pixelsColumns << " " << pixelsLines << endl;
+    //cout << pixelsColumns << " " << pixelsLines << endl;
 
     int nbblanc = 0;
     int nbnoir = 0;
@@ -175,3 +152,159 @@ void genererMatrices(char* caracteres) {
 
     return;
 }
+
+vector<vector<int> > detection_rectangles(){
+    vector<vector<int> > rectangles;
+    int x1, x2, y1, y2;
+    cimg_forXY(image,i,j) {
+        if(image(i,j,0,0) == 0){
+            contour.clear();
+            addContour(i,j);
+            //(image).display("test");
+            x1 = i; x2 = i; y1 = j; y2 = j;
+            for(int a = 0; a < contour.size() ; a++){
+                if(contour[a][0] < x1)
+                    x1 = contour[a][0];
+                if(contour[a][0] > x2)
+                    x2 = contour[a][0];
+                if(contour[a][1] < y1)
+                    y1 = contour[a][1];
+                if(contour[a][1] > y2)
+                    y2 = contour[a][1];
+            }
+            rectangles.push_back(vector<int>(0));
+            rectangles[rectangles.size()-1].push_back(x1);
+            rectangles[rectangles.size()-1].push_back(y1);
+            rectangles[rectangles.size()-1].push_back(x2);
+            rectangles[rectangles.size()-1].push_back(y2);
+            //i = x2 + 1;
+            //j = ( y1 + y2 ) / 2;
+        }
+
+    }
+    return rectangles;
+}
+
+void addContour(int x, int y){
+    contour.push_back(vector<int>(2));
+    contour[contour.size()-1][0] = x;
+    contour[contour.size()-1][1] = y;
+    image(x,y,0,0) = 255;
+    if(x+1 < image.width() && image(x+1,y,0,0) == 0){
+        addContour(x+1,y);}
+    if(x-1 > 0 && image(x-1,y,0,0) == 0 ){
+        addContour(x-1,y);}
+    if(y+1 < image.height() && image(x,y+1,0,0) == 0 ){
+        addContour(x,y+1);}
+    if(y-1 > 0 && image(x,y-1,0,0) == 0 ){
+        addContour(x,y-1);}
+
+}
+
+void loadSamplePolice(){
+    CImg<unsigned char> src("imgs/arialblack.png");
+
+	image = blackWhite(src);
+	CImg<unsigned char> imgcopy(image);
+	vector<vector<int> > caracteres = detection_rectangles();
+	caracteres = triRectangles(caracteres);
+
+	char* alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+	for(int i = 0; i < caracteres.size(); i++){
+
+        vector<vector<int> > mcaractere = matrixBW(imgcopy,caracteres[i][0],caracteres[i][1],caracteres[i][2],caracteres[i][3]);
+        Caractere caractere(alphabet[i],mcaractere);
+        objetsCaractere.push_back(caractere);
+
+	}
+}
+
+string detectFromImage(string path){
+    string result = "";
+    CImg<unsigned char> src(path.c_str());
+    image = blackWhite(src);
+	CImg<unsigned char> imgcopy(image);
+
+	vector<vector<int> > caracteres = detection_rectangles();
+	caracteres = triRectangles(caracteres);
+
+	for(int i = 0; i < caracteres.size(); i++){
+        if(i!= 0){
+            if(caracteres[i][1] >= caracteres[i-1][3])
+                result += '\n';
+            else if (caracteres[i][0]-caracteres[i-1][2] > (caracteres[i][3] - caracteres[i][1])/2  )
+                result += ' ';
+        }
+        char caractere = '?';
+        vector<vector<int> > mcaractere = matrixBW(imgcopy,caracteres[i][0],caracteres[i][1],caracteres[i][2],caracteres[i][3]);
+
+        int best = 0;
+        for(int a = 0; a < objetsCaractere.size(); a++){
+            float correspondance = compareMatrix(mcaractere,objetsCaractere[a].getMatrice());
+
+            if(correspondance > 75 && correspondance >= best){
+                best = correspondance;
+                caractere = objetsCaractere[a].getCaractere();
+            }
+
+        }
+        result += caractere;
+	}
+	return result;
+}
+
+float compareMatrix(vector<vector<int> > mat1, vector<vector<int> > mat2){
+    float corr = GRID_SIZE*GRID_SIZE;
+    for(int x = 0; x < GRID_SIZE ; x++){
+        for(int y = 0; y < GRID_SIZE; y++){
+            if(mat1[x][y] != mat2[x][y])
+                corr--;
+        }
+    }
+    corr = corr * 100 / (GRID_SIZE*GRID_SIZE);
+    return corr;
+}
+
+vector<vector<int> > triRectangles(vector<vector<int> > rectangles){
+    vector<vector<int> > tri;
+    for(int i = 0; i < rectangles.size(); i++){
+        vector<int> rectangle;
+        rectangle.push_back(rectangles[i][0]);
+        rectangle.push_back(rectangles[i][1]);
+        rectangle.push_back(rectangles[i][2]);
+        rectangle.push_back(rectangles[i][3]);
+        if(tri.empty())
+            tri.push_back(rectangle);
+        else{
+        int j;
+            for(j = tri.size()-1; j >= 0; j--){
+                if(rectangles[i][1] > tri[j][3] || (rectangles[i][3] >= tri[j][1] && rectangles[i][0] >= tri[j][2])){
+                    j++;
+                    break;
+                }
+            }
+            if(j == -1)
+                j = 0;
+            if(j == tri.size()){
+                tri.push_back(rectangle);
+            }
+            else{
+                tri.insert(tri.begin()+j, rectangle);
+            }
+        }
+    }
+    return tri;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
