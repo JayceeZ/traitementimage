@@ -9,7 +9,7 @@
 using namespace cimg_library;
 using namespace std;
 
-#define GRID_SIZE 16.0
+#define GRID_SIZE 32.0
 
 vector<vector<int> > contour;
 CImg<unsigned char> image;
@@ -105,8 +105,7 @@ void drawGrid(CImg<unsigned char>* image, int x1, int y1, int x2, int y2) {
 vector<vector<int> > matrixBW(CImg<unsigned char> image, int x1, int y1, int x2, int y2) {
     vector<vector<int> > matrice(GRID_SIZE*GRID_SIZE);
 
-    float pixelsColumns = (x2-x1)/GRID_SIZE;
-    float pixelsLines = (y2-y1)/GRID_SIZE;
+    CImg<unsigned char> image_trunc = image.get_crop(x1,y1,x2,y2);
 
     //cout << pixelsColumns << " " << pixelsLines << endl;
 
@@ -114,13 +113,20 @@ vector<vector<int> > matrixBW(CImg<unsigned char> image, int x1, int y1, int x2,
     int nbnoir = 0;
     int valeur;
 
+    while(image_trunc.width() < GRID_SIZE || image_trunc.height() < GRID_SIZE) {
+        image_trunc.resize_doubleXY();
+    }
+
+    float pixelsColumns = image_trunc.width()/GRID_SIZE;
+    float pixelsLines = image_trunc.height()/GRID_SIZE;
+
     for(int j = 0; j <= GRID_SIZE; j++) { // pour chaque ligne de la grille
         for(int i = 0; i < GRID_SIZE; i++) { // Pour chaque cases d'une ligne de la grille
             nbblanc = 0; nbnoir = 0;
             // on réalise le parcours des pixels dont on compte la quantité de noir ou de blanc
-            for(int runY = j*pixelsLines + y1; (runY - y1) < (j+1)*pixelsLines; runY++) {
-                for(int runX = i*pixelsColumns + x1; (runX - x1) < (i+1)*pixelsColumns; runX++) {
-                    if(image(runX,runY,0,0) == 255) // blanc
+            for(int runY = j*pixelsLines; runY < (j+1)*pixelsLines; runY++) {
+                for(int runX = i*pixelsColumns; runX < (i+1)*pixelsColumns; runX++) {
+                    if(image_trunc(runX,runY,0,0) == 255) // blanc
                         nbblanc++;
                     else
                         nbnoir++;
@@ -239,6 +245,14 @@ string detectFromImage(string path){
         }
         char caractere = '?';
         vector<vector<int> > mcaractere = matrixBW(imgcopy,caracteres[i][0],caracteres[i][1],caracteres[i][2],caracteres[i][3]);
+
+        for(int j=0; j < GRID_SIZE; j++) {
+            for(int i=0; i < GRID_SIZE; i++) {
+                std::cout << mcaractere[i][j];
+            }
+            std::cout << std::endl;
+        }
+        std::cout << std::endl;
 
         int best = 0;
         for(int a = 0; a < objetsCaractere.size(); a++){
