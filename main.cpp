@@ -278,20 +278,17 @@ vector<vector<int> > triRectangles(vector<vector<int> > rectangles){
         if(tri.empty())
             tri.push_back(rectangle);
         else{
-        int j;
+        int j,index = tri.size();
             for(j = tri.size()-1; j >= 0; j--){
-                if(rectangles[i][1] > tri[j][3] || (rectangles[i][3] >= tri[j][1] && rectangles[i][0] >= tri[j][2])){
-                    j++;
-                    break;
+                if(rectangle[3] < tri[j][1] || (rectangle[1] <= tri[j][3] && rectangle[2] <= tri[j][0])){
+                    index = j;
                 }
             }
-            if(j == -1)
-                j = 0;
-            if(j == tri.size()){
+            if(index == tri.size()){
                 tri.push_back(rectangle);
             }
             else{
-                tri.insert(tri.begin()+j, rectangle);
+                tri.insert(tri.begin()+index, rectangle);
             }
         }
     }
