@@ -9,11 +9,12 @@
 using namespace cimg_library;
 using namespace std;
 
-#define GRID_SIZE 32.0
+#define GRID_SIZE 16.0
 
 vector<vector<int> > contour;
 CImg<unsigned char> image;
 
+vector<vector<int> > fusionRectangle(vector<vector<int> > rectangles);
 vector<vector<int> > triRectangles(vector<vector<int> > rectangles);
 float compareMatrix(vector<vector<int> > mat1, vector<vector<int> > mat2);
 string detectFromImage(string path);
@@ -30,7 +31,7 @@ vector<Caractere> objetsCaractere;
 
 int main(int argc, const char* argv[]) {
     loadSamplePolice();
-    string test = detectFromImage("imgs/image_test.png");
+    string test = detectFromImage("imgs/test.jpg");
     cout << "test : " << test << endl;
 
     return 0;
@@ -202,14 +203,14 @@ void addContour(int x, int y){
 }
 
 void loadSamplePolice(){
-    CImg<unsigned char> src("imgs/arialblack.png");
+    CImg<unsigned char> src("imgs/arialblack.jpg");
 
 	image = blackWhite(src);
 	CImg<unsigned char> imgcopy(image);
 	vector<vector<int> > caracteres = detection_rectangles();
 	caracteres = triRectangles(caracteres);
 
-	char* alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+	char* alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdeéèêfghijklmnopqrstuvwxyz?.!,:/";
 	for(int i = 0; i < caracteres.size(); i++){
 
         vector<vector<int> > mcaractere = matrixBW(imgcopy,caracteres[i][0],caracteres[i][1],caracteres[i][2],caracteres[i][3]);
@@ -227,6 +228,7 @@ string detectFromImage(string path){
 
 	vector<vector<int> > caracteres = detection_rectangles();
 	caracteres = triRectangles(caracteres);
+	caracteres = fusionRectangle(caracteres);
 
 	for(int i = 0; i < caracteres.size(); i++){
         if(i!= 0){
@@ -294,6 +296,47 @@ vector<vector<int> > triRectangles(vector<vector<int> > rectangles){
         }
     }
     return tri;
+}
+
+vector<vector<int> > fusionRectangle(vector<vector<int> > rectangles){
+    vector<vector<int> > fusion;
+    int y1 = rectangles[0][1] , y2 = rectangles[0][3], i;
+    for(i = 1; i < rectangles.size(); i++){
+        int nx1 = rectangles[i-1][0], ny1 = rectangles[i-1][1], nx2 = rectangles[i-1][2], ny2 = rectangles[i-1][3];
+        if(rectangles[i][1] > y2 ){
+            if(rectangles[i][3] - rectangles[i][1] < y2 - y1)
+                y2 = ( y2 - y1 ) + rectangles[i][1];
+            else
+                y2 = rectangles[i][3];
+            y1 = rectangles[i][1];
+        }
+        else{
+            if( rectangles[i][1] < y1) y1 = rectangles[i][1];
+            if( rectangles[i][3] > y2) y2 = rectangles[i][3];
+            if( !(rectangles[i][0] > rectangles[i-1][2]) && !(rectangles[i][2] < rectangles[i-1][0])){
+                if(rectangles[i][0] < nx1) nx1 = rectangles[i][0];
+                if(rectangles[i][1] < ny1) ny1 = rectangles[i][1];
+                if(rectangles[i][2] > nx2) nx2 = rectangles[i][2];
+                if(rectangles[i][3] > ny2) ny2 = rectangles[i][3];
+                i++;
+            }
+        }
+        vector<int> rectangle;
+        rectangle.push_back(nx1);
+        rectangle.push_back(ny1);
+        rectangle.push_back(nx2);
+        rectangle.push_back(ny2);
+        fusion.push_back(rectangle);
+    }
+    if(i == rectangles.size()){
+        vector<int> rectangle;
+        rectangle.push_back(rectangles[i-1][0]);
+        rectangle.push_back(rectangles[i-1][1]);
+        rectangle.push_back(rectangles[i-1][2]);
+        rectangle.push_back(rectangles[i-1][3]);
+        fusion.push_back(rectangle);
+    }
+    return fusion;
 }
 
 
