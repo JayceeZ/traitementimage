@@ -12,13 +12,15 @@ using namespace std;
 
 #define GRID_SIZE 32.0
 
+wstring alphabet = L"ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdeéèêfghijklmnopqrstuvwxyz?!,:/";
+
 vector<vector<int> > contour;
 CImg<unsigned char> image;
 
 vector<vector<int> > fusionRectangle(vector<vector<int> > rectangles);
 vector<vector<int> > triRectangles(vector<vector<int> > rectangles);
 float compareMatrix(vector<vector<int> > mat1, vector<vector<int> > mat2);
-string detectFromImage(string path);
+wstring detectFromImage(string path);
 void loadSamplePolice();
 void addContour(int x, int y);
 vector<vector<int> > detection_rectangles();
@@ -31,9 +33,10 @@ void genererMatrices(char* caracteres);
 vector<Caractere> objetsCaractere;
 
 int main(int argc, const char* argv[]) {
+    setlocale(LC_ALL, "fr_FR.utf8");
     loadSamplePolice();
-    string test = detectFromImage("imgs/test.jpg");
-    cout << "test : " << test << endl;
+    wstring test = detectFromImage("imgs/test.jpg");
+    wcout << "test : " << test << endl;
 
     return 0;
 }
@@ -144,6 +147,7 @@ vector<vector<int> > matrixBW(CImg<unsigned char> image, int x1, int y1, int x2,
     return matrice;
 }
 
+/*
 void genererMatrices(char* caracteres) {
     for(int k=0; k < strlen(caracteres); k++) {
         char caractere = caracteres[k];
@@ -159,7 +163,7 @@ void genererMatrices(char* caracteres) {
     }
 
     return;
-}
+}*/
 
 vector<vector<int> > detection_rectangles(){
     vector<vector<int> > rectangles;
@@ -218,18 +222,17 @@ void loadSamplePolice(){
 	caracteres = triRectangles(caracteres);
 	caracteres = fusionRectangle(caracteres);
 
-	char* alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdefghijklmnopqrstuvwxyz?!,:/";
 	for(int i = 0; i < caracteres.size(); i++){
         vector<vector<int> > mcaractere = matrixBW(imgcopy,caracteres[i][0],caracteres[i][1],caracteres[i][2],caracteres[i][3]);
 
-        Caractere caractere(alphabet[i],mcaractere);
+        Caractere caractere(i,mcaractere);
         objetsCaractere.push_back(caractere);
 
 	}
 }
 
-string detectFromImage(string path){
-    string result = "";
+wstring detectFromImage(string path){
+    wstring result;
     CImg<unsigned char> src(path.c_str());
     image = blackWhite(src);
 	CImg<unsigned char> imgcopy(image);
@@ -245,7 +248,7 @@ string detectFromImage(string path){
             else if (caracteres[i][0]-caracteres[i-1][2] > (caracteres[i][3] - caracteres[i][1])/2  )
                 result += ' ';
         }
-        char caractere = '?';
+        int caractere = '?';
         vector<vector<int> > mcaractere = matrixBW(imgcopy,caracteres[i][0],caracteres[i][1],caracteres[i][2],caracteres[i][3]);
 
         /*for(int j=0; j < GRID_SIZE; j++) {
@@ -266,8 +269,9 @@ string detectFromImage(string path){
             }
 
         }
-        result += caractere;
+        result += alphabet.data()[caractere];
 	}
+
 	return result;
 }
 
