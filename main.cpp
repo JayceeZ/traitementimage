@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <vector>
 #include <sstream>
+#include <fstream>
 
 using namespace cimg_library;
 using namespace std;
@@ -215,11 +216,12 @@ void loadSamplePolice(){
 	CImg<unsigned char> imgcopy(image);
 	vector<vector<int> > caracteres = detection_rectangles();
 	caracteres = triRectangles(caracteres);
+	caracteres = fusionRectangle(caracteres);
 
-	char* alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdeéèêfghijklmnopqrstuvwxyz?.!,:/";
+	char* alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdefghijklmnopqrstuvwxyz?!,:/";
 	for(int i = 0; i < caracteres.size(); i++){
-
         vector<vector<int> > mcaractere = matrixBW(imgcopy,caracteres[i][0],caracteres[i][1],caracteres[i][2],caracteres[i][3]);
+
         Caractere caractere(alphabet[i],mcaractere);
         objetsCaractere.push_back(caractere);
 
@@ -246,13 +248,13 @@ string detectFromImage(string path){
         char caractere = '?';
         vector<vector<int> > mcaractere = matrixBW(imgcopy,caracteres[i][0],caracteres[i][1],caracteres[i][2],caracteres[i][3]);
 
-        for(int j=0; j < GRID_SIZE; j++) {
+        /*for(int j=0; j < GRID_SIZE; j++) {
             for(int i=0; i < GRID_SIZE; i++) {
                 std::cout << mcaractere[i][j];
             }
             std::cout << std::endl;
         }
-        std::cout << std::endl;
+        std::cout << std::endl;*/
 
         int best = 0;
         for(int a = 0; a < objetsCaractere.size(); a++){
@@ -291,12 +293,40 @@ vector<vector<int> > triRectangles(vector<vector<int> > rectangles){
         rectangle.push_back(rectangles[i][3]);
         if(tri.empty())
             tri.push_back(rectangle);
-        else{
-        int j,index = tri.size();
+        /*else{
+            int j,index = tri.size(),y1 = tri[tri.size()-1][1], y2 = tri[tri.size()-1][3];
             for(j = tri.size()-1; j >= 0; j--){
                 if(rectangle[3] < tri[j][1] || (rectangle[1] <= tri[j][3] && rectangle[2] <= tri[j][0])){
                     index = j;
                 }
+            }
+            if(index == tri.size()){
+                tri.push_back(rectangle);
+            }
+            else{
+                tri.insert(tri.begin()+index, rectangle);
+            }
+        }*/
+        else{
+            int index = 0, y1 = tri[0][1], y2 = tri[0][3], indexligne = 0, exindex = 0;
+            for(int j = 0; j < tri.size(); j++){
+                if(tri[j][1] > y2){
+                    y1 = tri[j][1];
+                    y2 = tri[j][3];
+                    indexligne = j;
+                    exindex = index;
+                }
+                if(tri[j][1] < y1){
+                    y1 = tri[j][1];
+                    j = indexligne;
+                    index = exindex;
+                }
+                if(tri[j][3] > y2){
+                    y2 = tri[j][3];
+                    j = indexligne;
+                    index = exindex;
+                }
+                if( rectangle[1] > y2 || (rectangle[3] > y1 && rectangle[0] > tri[j][2]))  index = j+1;
             }
             if(index == tri.size()){
                 tri.push_back(rectangle);
