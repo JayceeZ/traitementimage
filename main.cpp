@@ -17,6 +17,7 @@ wstring alphabet = L"ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdeéèêfghijklmnopq
 vector<vector<int> > contour;
 CImg<unsigned char> image;
 
+bool chevauchage(int x11, int x12, int x21, int x22);
 vector<vector<int> > fusionRectangle(vector<vector<int> > rectangles);
 vector<vector<int> > triRectangles(vector<vector<int> > rectangles);
 float compareMatrix(vector<vector<int> > mat1, vector<vector<int> > mat2);
@@ -35,7 +36,7 @@ vector<Caractere> objetsCaractere;
 int main(int argc, const char* argv[]) {
     setlocale(LC_ALL, "fr_FR.utf8");
     loadSamplePolice();
-    wstring test = detectFromImage("imgs/test.jpg");
+    wstring test = detectFromImage("imgs/testScanArial.jpg");
     wcout << "test : " << test << endl;
 
     return 0;
@@ -79,7 +80,7 @@ CImg<unsigned char> blackWhite(CImg<unsigned char> src)
     cimg_forXY(gray1,i,j) {
             gr1 = gray1(i,j,0,0);
             tab[gr1/16]++;
-            if (gr1<median-sqrt(variance)){
+            if (gr1<median-3*sqrt(variance)/2){
                 blackwhite(i,j,0,0) = 0;
 			} else {
 			    blackwhite(i,j,0,0) = 255;
@@ -184,11 +185,13 @@ vector<vector<int> > detection_rectangles(){
                 if(contour[a][1] > y2)
                     y2 = contour[a][1];
             }
-            rectangles.push_back(vector<int>(0));
-            rectangles[rectangles.size()-1].push_back(x1);
-            rectangles[rectangles.size()-1].push_back(y1);
-            rectangles[rectangles.size()-1].push_back(x2);
-            rectangles[rectangles.size()-1].push_back(y2);
+            if(x2-x1+y2-y1 > 4){
+                rectangles.push_back(vector<int>(0));
+                rectangles[rectangles.size()-1].push_back(x1);
+                rectangles[rectangles.size()-1].push_back(y1);
+                rectangles[rectangles.size()-1].push_back(x2);
+                rectangles[rectangles.size()-1].push_back(y2);
+            }
             //i = x2 + 1;
             //j = ( y1 + y2 ) / 2;
         }
@@ -214,7 +217,7 @@ void addContour(int x, int y){
 }
 
 void loadSamplePolice(){
-    CImg<unsigned char> src("imgs/arialblack.jpg");
+    CImg<unsigned char> src("imgs/arial.jpg");
 
 	image = blackWhite(src);
 	CImg<unsigned char> imgcopy(image);
@@ -234,8 +237,10 @@ void loadSamplePolice(){
 wstring detectFromImage(string path){
     wstring result;
     CImg<unsigned char> src(path.c_str());
+    (src).display("test");
     image = blackWhite(src);
 	CImg<unsigned char> imgcopy(image);
+	(imgcopy).display("test");
 
 	vector<vector<int> > caracteres = detection_rectangles();
 	caracteres = triRectangles(caracteres);
@@ -330,7 +335,7 @@ vector<vector<int> > triRectangles(vector<vector<int> > rectangles){
                     j = indexligne;
                     index = exindex;
                 }
-                if( rectangle[1] > y2 || (rectangle[3] > y1 && rectangle[0] > tri[j][2]))  index = j+1;
+                if( rectangle[1] > y2 || (rectangle[3] > y1 && rectangle[0] >= tri[j][2]))  index = j+1;
             }
             if(index == tri.size()){
                 tri.push_back(rectangle);
@@ -345,10 +350,10 @@ vector<vector<int> > triRectangles(vector<vector<int> > rectangles){
 
 vector<vector<int> > fusionRectangle(vector<vector<int> > rectangles){
     vector<vector<int> > fusion;
-    int y1 = rectangles[0][1] , y2 = rectangles[0][3], i;
+    int y1 = rectangles[0][1] , y2 = rectangles[0][3], i;// y1 et y2 indique la position de la ligne en cours
     for(i = 1; i < rectangles.size(); i++){
         int nx1 = rectangles[i-1][0], ny1 = rectangles[i-1][1], nx2 = rectangles[i-1][2], ny2 = rectangles[i-1][3];
-        if(rectangles[i][1] > y2 ){
+        if(rectangles[i][1] > y2 ){// on arrive sur une nouvelle ligne
             if(rectangles[i][3] - rectangles[i][1] < y2 - y1)
                 y2 = ( y2 - y1 ) + rectangles[i][1];
             else
@@ -356,9 +361,9 @@ vector<vector<int> > fusionRectangle(vector<vector<int> > rectangles){
             y1 = rectangles[i][1];
         }
         else{
-            if( rectangles[i][1] < y1) y1 = rectangles[i][1];
+            if( rectangles[i][1] < y1) y1 = rectangles[i][1];// On agrandit la position de la ligne si on tombe sur un caractère plus grand que les précédents
             if( rectangles[i][3] > y2) y2 = rectangles[i][3];
-            if( !(rectangles[i][0] > rectangles[i-1][2]) && !(rectangles[i][2] < rectangles[i-1][0])){
+            if( chevauchage(rectangles[i-1][0],rectangles[i-1][2],rectangles[i][0],rectangles[i][2])){
                 if(rectangles[i][0] < nx1) nx1 = rectangles[i][0];
                 if(rectangles[i][1] < ny1) ny1 = rectangles[i][1];
                 if(rectangles[i][2] > nx2) nx2 = rectangles[i][2];
@@ -382,6 +387,19 @@ vector<vector<int> > fusionRectangle(vector<vector<int> > rectangles){
         fusion.push_back(rectangle);
     }
     return fusion;
+}
+
+bool chevauchage(int x11, int x12, int x21, int x22){
+    if( !(x21 > x12) && !(x22 < x21)){
+        int longmin = min(x12 - x11, x22 - x21);
+        if((x21 >= x11 && x22 <= x12) || (x21 <= x11 && x22 >= x12))
+            return true;
+        else if (x21 >= x11 && x12 - x21 >= longmin / 3)
+            return true;
+        else if (x21 <= x11 && x22 - x11 >= longmin / 3)
+            return true;
+    }
+    return false;
 }
 
 
