@@ -2,17 +2,19 @@
 #include "caractere.h"
 
 #include <iostream>
+# include <dirent.h>
 #include <iomanip>
 #include <vector>
 #include <sstream>
 #include <fstream>
+#include <locale>
 
 using namespace cimg_library;
 using namespace std;
 
 #define GRID_SIZE 32.0
 
-wstring alphabet = L"ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdeéèêfghijklmnopqrstuvwxyzàâîô?,:/!.;&#(){}[]-+=*%";
+wstring alphabet = L"ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdeéèêfghijklmnopqrstuvwxyzàâîô?,:/!.;&#(){}[]-+=*'";
 
 vector<vector<int> > contour;
 CImg<unsigned char> image;
@@ -32,13 +34,42 @@ vector<vector<int> > matrixBW(CImg<unsigned char> image, int x1, int y1, int x2,
 void drawGrid(CImg<unsigned char>* image, int x1, int y1, int x2, int y2);
 void genererMatrices(char* caracteres);
 
+vector<string> listFiles(const char *dName);
+void find_and_replace(string& source, string const& find, string const& replace);
+
 vector<Caractere> objetsCaractere;
 
 int main(int argc, const char* argv[]) {
-    setlocale(LC_ALL, "fr_FR.utf8");
-    loadSamplePolice();
-    wstring test = detectFromImage("imgs/testScanArial2.jpg");
-    wcout << "test : " << test << endl;
+    //setlocale(LC_ALL, "fr_FR.utf8");
+    std::locale::global(std::locale(""));
+    vector<string> files = listFiles("imgs");
+    vector<string> images;
+    for(int i = 0; i < files.size() ;i++){
+        if(files[i].find(".jpg") != std::string::npos)
+            images.push_back(files[i]);
+    }
+    vector<string> results = listFiles("result");loadSamplePolice();
+    for(int i = 0; i < images.size() ;i++){
+        bool found = false;
+        for(int a = 0 ; a < results.size() ; a++){
+            if(results[i].find(".") == std::string::npos && images[i].find(results[a]) != std::string::npos)
+                found = true;
+        }
+        if(found == false){
+            string path = "imgs/"+images[i];
+            wstring result = detectFromImage(path);
+            string name = images[i];
+            cout << "Détection du fichier " << name << " : \n" << endl;
+            wcout << result << endl;
+            find_and_replace(name,".jpg","");
+            name = "result/"+name;
+            std::wofstream wof;
+            wof.open(name.c_str());
+            wof << result;
+            wof.close();
+
+        }
+    }
 
     return 0;
 }
@@ -242,7 +273,7 @@ void addContour(int x, int y){
 }
 
 void loadSamplePolice(){
-    CImg<unsigned char> src("imgs/arial2.jpg");
+    CImg<unsigned char> src("polices/arial.jpg");
 
 	image = blackWhite(src);
 	CImg<unsigned char> imgcopy(image);
@@ -279,7 +310,7 @@ wstring detectFromImage(string path){
             else if (caracteres[i][0]-caracteres[i-1][2] > (caracteres[i][3] - caracteres[i][1])/3  )
                 result += ' ';
         }
-        int caractere = '¤';
+        int caractere = -1;
         vector<vector<int> > mcaractere = matrixBW(imgcopy,caracteres[i][0],caracteres[i][1],caracteres[i][2],caracteres[i][3]);
 
         /*for(int j=0; j < GRID_SIZE; j++) {
@@ -313,7 +344,8 @@ wstring detectFromImage(string path){
             }
 
         }
-        result += alphabet.data()[caractere];
+        if(caractere != -1)
+            result += alphabet.data()[caractere];
 	}
 
 	return result;
@@ -439,6 +471,28 @@ bool chevauchage(int x11, int x12, int x21, int x22){
             return true;
     }
     return false;
+}
+
+
+vector<string> listFiles(const char *dName) {
+    DIR *dir = opendir(dName);
+    struct dirent *entry = readdir(dir);
+    vector<string> files;
+    while(entry) {
+        files.push_back(entry->d_name);
+        entry = readdir(dir);
+    }
+    closedir(dir);
+    return files;
+}
+
+void find_and_replace(string& source, string const& find, string const& replace)
+{
+    for(string::size_type i = 0; (i = source.find(find, i)) != string::npos;)
+    {
+        source.replace(i, find.length(), replace);
+        i += replace.length();
+    }
 }
 
 
