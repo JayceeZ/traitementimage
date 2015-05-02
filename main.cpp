@@ -12,7 +12,7 @@ using namespace std;
 
 #define GRID_SIZE 32.0
 
-wstring alphabet = L"ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdeéèêfghijklmnopqrstuvwxyz?!,:/";
+wstring alphabet = L"ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdeéèêfghijklmnopqrstuvwxyzàâîô?,:/!.;&#(){}[]-+=*%";
 
 vector<vector<int> > contour;
 CImg<unsigned char> image;
@@ -27,6 +27,7 @@ void addContour(int x, int y);
 vector<vector<int> > detection_rectangles();
 
 CImg<unsigned char> blackWhite(CImg<unsigned char> src);
+CImg<unsigned char> lissage(CImg<unsigned char> src);
 vector<vector<int> > matrixBW(CImg<unsigned char> image, int x1, int y1, int x2, int y2);
 void drawGrid(CImg<unsigned char>* image, int x1, int y1, int x2, int y2);
 void genererMatrices(char* caracteres);
@@ -36,7 +37,7 @@ vector<Caractere> objetsCaractere;
 int main(int argc, const char* argv[]) {
     setlocale(LC_ALL, "fr_FR.utf8");
     loadSamplePolice();
-    wstring test = detectFromImage("imgs/testScanArial.jpg");
+    wstring test = detectFromImage("imgs/testScanArial2.jpg");
     wcout << "test : " << test << endl;
 
     return 0;
@@ -80,7 +81,7 @@ CImg<unsigned char> blackWhite(CImg<unsigned char> src)
     cimg_forXY(gray1,i,j) {
             gr1 = gray1(i,j,0,0);
             tab[gr1/16]++;
-            if (gr1<median-3*sqrt(variance)/2){
+            if (gr1<median-2*sqrt(variance)){
                 blackwhite(i,j,0,0) = 0;
 			} else {
 			    blackwhite(i,j,0,0) = 255;
@@ -91,6 +92,30 @@ CImg<unsigned char> blackWhite(CImg<unsigned char> src)
         //cout << "entre " << i*16 << " et " << i*16+15 << ": " << tab[i] << endl;
     }
     return blackwhite;
+}
+
+CImg<unsigned char> lissage(CImg<unsigned char> src){
+    cimg_forXY(src,i,j) {
+        int couleur = src(i,j,0,0);
+        int cvoisins = 0;
+        if(i > 0 && src(i-1,j,0,0) == couleur)
+            cvoisins++;
+        if(i < src.width()-1 && src(i+1,j,0,0) == couleur)
+            cvoisins++;
+        if(j > 0 && src(i,j-1,0,0) == couleur)
+            cvoisins++;
+        if(j < src.height() && src(i,j+1,0,0) == couleur)
+            cvoisins++;
+        if(cvoisins < 2){
+            if(couleur == 0)
+                src(i,j,0,0) = 255;
+            else
+                src(i,j,0,0) = 0;
+        }
+        else
+            src(i,j,0,0) = couleur;
+    }
+    return src;
 }
 
 void drawGrid(CImg<unsigned char>* image, int x1, int y1, int x2, int y2) {
@@ -217,7 +242,7 @@ void addContour(int x, int y){
 }
 
 void loadSamplePolice(){
-    CImg<unsigned char> src("imgs/arial.jpg");
+    CImg<unsigned char> src("imgs/arial2.jpg");
 
 	image = blackWhite(src);
 	CImg<unsigned char> imgcopy(image);
@@ -228,7 +253,7 @@ void loadSamplePolice(){
 	for(int i = 0; i < caracteres.size(); i++){
         vector<vector<int> > mcaractere = matrixBW(imgcopy,caracteres[i][0],caracteres[i][1],caracteres[i][2],caracteres[i][3]);
 
-        Caractere caractere(i,mcaractere);
+        Caractere caractere(i,mcaractere,caracteres[i][2]-caracteres[i][0],caracteres[i][3]-caracteres[i][1]);
         objetsCaractere.push_back(caractere);
 
 	}
@@ -238,9 +263,10 @@ wstring detectFromImage(string path){
     wstring result;
     CImg<unsigned char> src(path.c_str());
     (src).display("test");
-    image = blackWhite(src);
+    src = blackWhite(src);
+	image = lissage(src);
+	(image).display("test");
 	CImg<unsigned char> imgcopy(image);
-	(imgcopy).display("test");
 
 	vector<vector<int> > caracteres = detection_rectangles();
 	caracteres = triRectangles(caracteres);
@@ -250,10 +276,10 @@ wstring detectFromImage(string path){
         if(i!= 0){
             if(caracteres[i][1] >= caracteres[i-1][3])
                 result += '\n';
-            else if (caracteres[i][0]-caracteres[i-1][2] > (caracteres[i][3] - caracteres[i][1])/2  )
+            else if (caracteres[i][0]-caracteres[i-1][2] > (caracteres[i][3] - caracteres[i][1])/3  )
                 result += ' ';
         }
-        int caractere = '?';
+        int caractere = '¤';
         vector<vector<int> > mcaractere = matrixBW(imgcopy,caracteres[i][0],caracteres[i][1],caracteres[i][2],caracteres[i][3]);
 
         /*for(int j=0; j < GRID_SIZE; j++) {
@@ -264,12 +290,25 @@ wstring detectFromImage(string path){
         }
         std::cout << std::endl;*/
 
-        int best = 0;
+        float best = 0;
+        float diffProportion = 1;
         for(int a = 0; a < objetsCaractere.size(); a++){
             float correspondance = compareMatrix(mcaractere,objetsCaractere[a].getMatrice());
-
+            float proportion = (float)(caracteres[i][3]-caracteres[i][1])/(float)(caracteres[i][2]-caracteres[i][0]);
+            float currentDiffProportion = objetsCaractere[a].getProportion()-proportion;
+            currentDiffProportion = max(currentDiffProportion, -currentDiffProportion);
+            bool change = false;
             if(correspondance > 75 && correspondance >= best){
+                if(correspondance - best >= 1)
+                    change = true;
+                else if(currentDiffProportion < diffProportion){
+                    change = true;
+                }
+
+            }
+            if(change){
                 best = correspondance;
+                diffProportion = currentDiffProportion;
                 caractere = objetsCaractere[a].getCaractere();
             }
 
