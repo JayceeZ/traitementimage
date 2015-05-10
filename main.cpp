@@ -2,7 +2,7 @@
 #include "caractere.h"
 
 #include <iostream>
-# include <dirent.h>
+#include <dirent.h>
 #include <iomanip>
 #include <vector>
 #include <sstream>
@@ -32,7 +32,6 @@ CImg<unsigned char> blackWhite(CImg<unsigned char> src);
 CImg<unsigned char> lissage(CImg<unsigned char> src);
 vector<vector<int> > matrixBW(CImg<unsigned char> image, int x1, int y1, int x2, int y2);
 void drawGrid(CImg<unsigned char>* image, int x1, int y1, int x2, int y2);
-void genererMatrices(char* caracteres);
 
 vector<string> listFiles(const char *dName);
 void find_and_replace(string& source, string const& find, string const& replace);
@@ -168,7 +167,6 @@ vector<vector<int> > matrixBW(CImg<unsigned char> image, int x1, int y1, int x2,
 
     CImg<unsigned char> image_trunc = image.get_crop(x1,y1,x2,y2);
 
-    //cout << pixelsColumns << " " << pixelsLines << endl;
 
     int nbblanc = 0;
     int nbnoir = 0;
@@ -204,23 +202,6 @@ vector<vector<int> > matrixBW(CImg<unsigned char> image, int x1, int y1, int x2,
     return matrice;
 }
 
-/*
-void genererMatrices(char* caracteres) {
-    for(int k=0; k < strlen(caracteres); k++) {
-        char caractere = caracteres[k];
-        stringstream concatenation;
-        concatenation << "imgs/" << caractere << ".jpg";
-        string fichier = concatenation.str();
-        std::cout << "creation de " << caractere << endl;
-
-        CImg<unsigned int> lettre(fichier.data());
-
-        Caractere objet(caractere, matrixBW(lettre, 0, 0, lettre.width(), lettre.height()));
-        objetsCaractere.push_back(objet);
-    }
-
-    return;
-}*/
 
 vector<vector<int> > detection_rectangles(){
     vector<vector<int> > rectangles;
@@ -313,14 +294,6 @@ wstring detectFromImage(string path){
         int caractere = -1;
         vector<vector<int> > mcaractere = matrixBW(imgcopy,caracteres[i][0],caracteres[i][1],caracteres[i][2],caracteres[i][3]);
 
-        /*for(int j=0; j < GRID_SIZE; j++) {
-            for(int i=0; i < GRID_SIZE; i++) {
-                std::cout << mcaractere[i][j];
-            }
-            std::cout << std::endl;
-        }
-        std::cout << std::endl;*/
-
         float best = 0;
         float diffProportion = 1;
         for(int a = 0; a < objetsCaractere.size(); a++){
@@ -373,20 +346,6 @@ vector<vector<int> > triRectangles(vector<vector<int> > rectangles){
         rectangle.push_back(rectangles[i][3]);
         if(tri.empty())
             tri.push_back(rectangle);
-        /*else{
-            int j,index = tri.size(),y1 = tri[tri.size()-1][1], y2 = tri[tri.size()-1][3];
-            for(j = tri.size()-1; j >= 0; j--){
-                if(rectangle[3] < tri[j][1] || (rectangle[1] <= tri[j][3] && rectangle[2] <= tri[j][0])){
-                    index = j;
-                }
-            }
-            if(index == tri.size()){
-                tri.push_back(rectangle);
-            }
-            else{
-                tri.insert(tri.begin()+index, rectangle);
-            }
-        }*/
         else{
             int index = 0, y1 = tri[0][1], y2 = tri[0][3], indexligne = 0, exindex = 0;
             for(int j = 0; j < tri.size(); j++){
