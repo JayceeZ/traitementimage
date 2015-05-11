@@ -47,12 +47,17 @@ int main(int argc, const char* argv[]) {
         if(files[i].find(".jpg") != std::string::npos)
             images.push_back(files[i]);
     }
-    vector<string> results = listFiles("result");loadSamplePolice();
+    vector<string> results = listFiles("result");
+    loadSamplePolice();
     for(int i = 0; i < images.size() ;i++){
+        cout << "image : " << images[i] << endl;
         bool found = false;
         for(int a = 0 ; a < results.size() ; a++){
-            if(results[i].find(".") == std::string::npos && images[i].find(results[a]) != std::string::npos)
+            cout << "test : " << results[a] << endl;
+            if(results[a].find(".") == std::string::npos && images[i].find(results[a]) != std::string::npos){
                 found = true;
+                cout << " found ! " << endl;
+                }
         }
         if(found == false){
             string path = "imgs/"+images[i];
